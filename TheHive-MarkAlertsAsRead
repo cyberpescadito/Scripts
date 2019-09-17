@@ -1,0 +1,52 @@
+#!/usr/bin/python
+
+#Author: Florian Perret @cyber_pescadito
+#Date: 27.08.2019
+#Description: Mark all your new alerts as read in TheHive
+
+import requests
+import json
+from thehive4py.api import TheHiveApi
+from thehive4py.query import *
+from thehive4py.models import Alert, AlertArtifact, CustomFieldHelper
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+#Set your parameters here
+theHiveUrl = 'https://myhive.com/'
+theHiveAPI = 'MY_API_KEY'
+theHiveCert = 'cert=False'
+
+#Cooking some connections parameters
+theHiveFunction = '/markAsRead'
+api = TheHiveApi(theHiveUrl, theHiveAPI, cert=False)
+h = {'content-type': 'application/json'}
+token = 'Bearer ' + theHiveAPI
+h['Authorization'] = token
+
+#Gathering all alerts ID
+def search(title, query, range, sort):
+    print(title)
+    print('-----------------------------')
+    response = api.find_alerts(query=query, range=range, sort=sort)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print('ko: {}/{}'.format(response.status_code, response.text))
+        sys.exit(0)
+
+response = search('list all new alerts', String("status: New"), 'all', [])
+idList = []
+for j in response:
+        theid = str(j["id"])
+        idList.append(theid)
+
+#Updating alerts status
+theHiveUrl = theHiveUrl + '/api/alert/'
+def PutAlertOnRead(theHiveUrl,alertid,theHiveFunction,h):
+        theHiveUrl = theHiveUrl + alertid + theHiveFunction
+        r=requests.post(theHiveUrl, headers=h, verify='/etc/ssl/certs/ca-certificates.crt')
+
+for alertid in idList:
+        PutAlertOnRead(theHiveUrl,alertid,theHiveFunction,h)
